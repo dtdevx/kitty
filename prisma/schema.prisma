@@ -6,3 +6,34 @@ datasource db {
   provider = "postgresql"
   url      = env("DB_PRISMA_URL")
 }
+
+// Models
+
+model User {
+  id         Int        @id @default(autoincrement())
+  email      String     @unique
+  name       String
+  password   String
+  profilePic String?
+  isActive   Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  userRole   UserRole[]
+}
+
+model Role {
+  id       Int        @id @default(autoincrement())
+  name     String     @unique
+  userRole UserRole[]
+}
+
+model UserRole {
+  userId     Int
+  roleId     Int
+  assignedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  role Role @relation(fields: [roleId], references: [id])
+
+  @@id([userId, roleId])
+}

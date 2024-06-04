@@ -30,6 +30,11 @@
 
 ```bash
 $ yarn install
+
+# prisma migrations & seed
+$ npx prisma migrate dev
+$ npx prisma generate
+$ yarn seed
 ```
 
 ## Running the app
@@ -43,6 +48,9 @@ $ yarn run start:dev
 
 # production mode
 $ yarn run start:prod
+
+# prisma studio
+$ npx prisma studio
 ```
 
 ## Test
