@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -28,28 +27,28 @@ async function main() {
   });
 
   // Seed user
-  const user = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email: 'user@kitty.lan',
       name: 'Kitty User',
       password: userPassword,
       profilePic: 'https://kitty.lan/img/user-pic.png',
       isActive: true,
-      userRole: {
+      roles: {
         create: [{ role: { connect: { id: userRole.id } } }],
       },
     },
   });
 
   // Seed admin
-  const admin = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email: 'admin@kitty.lan',
       name: 'Kitty Admin',
       password: adminPassword,
       profilePic: 'https://kitty.lan/img/admin-pic.png',
       isActive: true,
-      userRole: {
+      roles: {
         create: [
           { role: { connect: { id: adminRole.id } } },
           { role: { connect: { id: userRole.id } } },
