@@ -1,7 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import * as cookieParser from 'cookie-parser';
+import { setupSwagger } from '@app/config/swagger.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -9,17 +10,10 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api/v1');
 
+  app.use(cookieParser());
+
   if (process.env.NODE_ENV !== 'production') {
-    const config = new DocumentBuilder()
-      .setTitle('Kitty API')
-      .setDescription('This is the Kitty API documentation via Swagger.')
-      .setVersion('1.0')
-      .addBearerAuth()
-      .build();
-    const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('docs', app, document, {
-      customSiteTitle: 'Kitty API documentation via Swagger',
-    });
+    setupSwagger(app);
   }
 
   const port = configService.get<number>('APP_PORT', 3000);
