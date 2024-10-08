@@ -66,6 +66,19 @@ $ yarn run test:e2e
 $ yarn run test:cov
 ```
 
+## Update NestJS
+
+```bash
+# install 'yarn-upgrade-all' if not already
+$ yarn global add yarn-upgrade-all
+
+# upgrade nestjs & dependencies (on fish shell, the '$' needs to be escaped with '\')
+$ yarn-upgrade-all --ignore "^((?!@nestjs).)*$" --upgrade
+
+# finish update / check for missing installs
+$ yarn install
+```
+
 ## Support
 
 Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
