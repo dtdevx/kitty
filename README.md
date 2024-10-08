@@ -37,6 +37,16 @@ $ npx prisma generate
 $ yarn seed
 ```
 
+## Preparing local SSL
+```bash
+# install mkcert (see: https://github.com/FiloSottile/mkcert)
+
+# generate certification files
+$ mkdir -p src/cert
+$ mkcert -install
+$ mkcert -key-file ./src/cert/key.pem -cert-file ./src/cert/cert.pem localhost
+```
+
 ## Running the app
 
 ```bash
