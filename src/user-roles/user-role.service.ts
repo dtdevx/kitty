@@ -2,7 +2,7 @@ import { PrismaService } from '@app/prisma/prisma.service';
 import { RoleService } from '@app/roles/role.service';
 import { AddUserRoleDto } from '@app/user-roles/dto/add-user-role.dto';
 import { RemoveUserRoleDto } from '@app/user-roles/dto/remove-user-role.dto';
-import { UserType } from '@app/users/types/user.type';
+import { UserWithRoles } from '@app/users/types/user.type';
 import { UserService } from '@app/users/user.service';
 import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 
@@ -14,8 +14,8 @@ export class UserRoleService {
     private readonly roleService: RoleService,
   ) {}
 
-  async addUserRole(addUserRoleDto: AddUserRoleDto): Promise<UserType> {
-    const role = this.roleService.findById(addUserRoleDto.roleId);
+  async addUserRole(addUserRoleDto: AddUserRoleDto): Promise<UserWithRoles> {
+    const role = await this.roleService.findById(addUserRoleDto.roleId);
     if (!role) {
       throw new UnprocessableEntityException('This role does not exist.');
     }
@@ -24,7 +24,7 @@ export class UserRoleService {
       throw new UnprocessableEntityException('This user does not exist.');
     }
     const userRoleExists = !!user.roles.filter(
-      (role) => role.id === addUserRoleDto.roleId,
+      (role) => role.roleId === addUserRoleDto.roleId,
     ).length;
     if (userRoleExists) {
       throw new UnprocessableEntityException(
@@ -35,24 +35,19 @@ export class UserRoleService {
       where: { id: addUserRoleDto.userId },
       data: {
         roles: {
-          create: {
-            roleId: addUserRoleDto.roleId,
-          },
+          connect: [{ userId_roleId: { userId: user.id, roleId: role.id } }],
         },
       },
-      include: { roles: { include: { role: true } } },
+      include: { roles: true },
     });
 
-    return {
-      ...updatedUser,
-      roles: this.userService.hydrateUserRoles(updatedUser.roles),
-    };
+    return updatedUser;
   }
 
   async removeUserRole(
     removeUserRoleDto: RemoveUserRoleDto,
-  ): Promise<UserType> {
-    const role = this.roleService.findById(removeUserRoleDto.roleId);
+  ): Promise<UserWithRoles> {
+    const role = await this.roleService.findById(removeUserRoleDto.roleId);
     if (!role) {
       throw new UnprocessableEntityException('This role does not exist.');
     }
@@ -61,7 +56,7 @@ export class UserRoleService {
       throw new UnprocessableEntityException('This user does not exist.');
     }
     const userRoleExists = !!user.roles.filter(
-      (role) => role.id === removeUserRoleDto.roleId,
+      (role) => role.roleId === removeUserRoleDto.roleId,
     ).length;
     if (!userRoleExists) {
       throw new UnprocessableEntityException(
@@ -72,19 +67,12 @@ export class UserRoleService {
       where: { id: removeUserRoleDto.userId },
       data: {
         roles: {
-          deleteMany: [
-            {
-              roleId: removeUserRoleDto.roleId,
-            },
-          ],
+          disconnect: [{ userId_roleId: { userId: user.id, roleId: role.id } }],
         },
       },
-      include: { roles: { include: { role: true } } },
+      include: { roles: true },
     });
 
-    return {
-      ...updatedUser,
-      roles: this.userService.hydrateUserRoles(updatedUser.roles),
-    };
+    return updatedUser;
   }
 }

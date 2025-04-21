@@ -8,59 +8,52 @@ import {
   UserResponseInterface,
   UsersResponseInterface,
 } from '@app/users/types/user-response.interface';
-import { UserType } from '@app/users/types/user.type';
+import { UserWithRoles } from '@app/users/types/user.type';
 import {
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { Role, User } from '@prisma/client';
 
 @Injectable()
 export class UserService {
-  private readonly omit = {
-    password: true,
-  };
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly roleService: RoleService,
   ) {}
 
-  async findAll(omitFields = true): Promise<UserType[]> {
+  async findAll(): Promise<UserWithRoles[]> {
     const users = await this.prisma.user.findMany({
-      omit: omitFields ? this.omit : {},
-      include: { roles: { include: { role: true } } },
+      include: { roles: true },
     });
-    return users.map((user) => ({
-      ...user,
-      roles: this.hydrateUserRoles(user.roles),
-    }));
+    return users;
   }
 
-  async findById(id: number, omitFields = true): Promise<UserType> {
+  async findById(id: number): Promise<UserWithRoles> {
     const user = await this.prisma.user.findFirst({
       where: { id },
-      omit: omitFields ? this.omit : {},
-      include: { roles: { include: { role: true } } },
+      include: { roles: true },
     });
-    return {
-      ...user,
-      roles: this.hydrateUserRoles(user.roles),
-    };
+    return user;
   }
 
-  async findByEmail(
-    email: string,
-    omitFields = true,
-  ): Promise<UserType | User> {
+  async findByEmail(email: string): Promise<UserWithRoles> {
     return await this.prisma.user.findFirst({
       where: { email },
-      omit: omitFields ? this.omit : {},
+      include: {
+        roles: true,
+      },
     });
   }
 
-  async create(createUserDto: CreateUserDto): Promise<UserType> {
+  async getPasswordHashById(id: number): Promise<string> {
+    const user = await this.prisma.user.findFirst({
+      where: { id },
+    });
+    return user.password;
+  }
+
+  async create(createUserDto: CreateUserDto): Promise<UserWithRoles> {
     const userByEmail = await this.findByEmail(createUserDto.email);
     if (userByEmail) {
       throw new UnprocessableEntityException(
@@ -78,21 +71,21 @@ export class UserService {
         profilePic,
         isActive,
         roles: {
-          create: [{ role: { connect: { id: userRole.id } } }],
+          connect: [
+            { userId_roleId: { userId: userByEmail.id, roleId: userRole.id } },
+          ],
         },
       },
-      include: { roles: { include: { role: true } } },
+      include: { roles: true },
+      omit: { password: true },
     });
-    return {
-      ...user,
-      roles: this.hydrateUserRoles(user.roles),
-    };
+    return user;
   }
 
   async updateById(
     id: number,
     updateUserDto: UpdateUserDto,
-  ): Promise<UserType> {
+  ): Promise<UserWithRoles> {
     const updatedUser = { ...updateUserDto };
     if (id !== updatedUser.id) {
       throw new UnprocessableEntityException('Ids do not match');
@@ -116,47 +109,33 @@ export class UserService {
     const user = await this.prisma.user.update({
       where: { id },
       data: updatedUser,
-      include: { roles: { include: { role: true } } },
+      include: { roles: true },
     });
 
-    return {
-      ...user,
-      roles: this.hydrateUserRoles(user.roles),
-    };
+    return user;
   }
 
-  async deleteById(id: number): Promise<UserType> {
+  async deleteById(id: number): Promise<UserWithRoles> {
     const user = await this.prisma.user
       .delete({
         where: { id },
-        include: { roles: { include: { role: true } } },
+        include: { roles: true },
       })
       .catch(() => {
         throw new UnprocessableEntityException();
       });
-    return {
-      ...user,
-      roles: this.hydrateUserRoles(user.roles),
-    };
+    return user;
   }
 
-  buildUsersResponse(users: UserType[]): UsersResponseInterface {
+  buildUsersResponse(users: UserWithRoles[]): UsersResponseInterface {
     return {
       users,
     };
   }
 
-  buildUserResponse(user: UserType): UserResponseInterface {
+  buildUserResponse(user: UserWithRoles): UserResponseInterface {
     return {
       user,
     };
-  }
-
-  hydrateUserRoles(roles: any[]): Role[] {
-    return roles.map((userRole) => ({
-      id: userRole.role.id,
-      name: userRole.role.name,
-      description: userRole.role.description,
-    }));
   }
 }

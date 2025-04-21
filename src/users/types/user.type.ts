@@ -1,3 +1,4 @@
-import { Role, User } from '@prisma/client';
+import { Prisma } from "prisma/generated/prisma/client";
 
-export type UserType = Omit<User, 'password'> & { roles: Role[] };
+export type FullUserWithRoles = Prisma.UserGetPayload<{include: { roles: true } }>;
+export type UserWithRoles = Omit<FullUserWithRoles, 'password'>;

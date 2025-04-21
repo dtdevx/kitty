@@ -1,9 +1,9 @@
-import { UserType } from '@app/users/types/user.type';
+import { UserWithRoles } from '@app/users/types/user.type';
 
 export interface UserResponseInterface {
-  user: UserType;
+  user: UserWithRoles;
 }
 
 export interface UsersResponseInterface {
-  users: UserType[];
+  users: UserWithRoles[];
 }

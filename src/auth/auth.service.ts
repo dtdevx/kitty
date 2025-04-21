@@ -6,7 +6,6 @@ import {
   HOUR_IN_SECONDS,
   WEEK_IN_SECONDS,
 } from '@app/constants/time.constants';
-import { UserType } from '@app/users/types/user.type';
 import { UserService } from '@app/users/user.service';
 import {
   Injectable,
@@ -17,7 +16,6 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { User } from '@prisma/client';
 
 @Injectable()
 export class AuthService implements OnModuleInit, OnModuleDestroy {
@@ -70,31 +68,33 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
     );
   }
 
-  generateJwtToken(user: User | UserType): AuthResponseInterface {
-    const { id, name } = user;
+  generateJwtToken(roles: number[]): AuthResponseInterface {
     return {
       accessToken: this.jwtService.sign(
-        { id, name },
+        { roles },
         { expiresIn: 1 * HOUR_IN_SECONDS },
       ),
       refreshToken: this.jwtService.sign(
-        { id, name },
+        { roles },
         { expiresIn: 1 * WEEK_IN_SECONDS },
       ),
     };
   }
 
   async login(loginUserDto: LoginUserDto): Promise<AuthResponseInterface> {
-    const user = (await this.userService.findByEmail(
-      loginUserDto.email,
-      false,
-    )) as User;
-    if (!user || !bcrypt.compareSync(loginUserDto.password, user.password)) {
+    const user = await this.userService.findByEmail(loginUserDto.email);
+    if (!user) {
       throw new UnauthorizedException(
         'Email and password combination not valid',
       );
     }
-    return this.generateJwtToken(user);
+    const passwordHash = await this.userService.getPasswordHashById(user.id);
+    if (!bcrypt.compareSync(loginUserDto.password, passwordHash)) {
+      throw new UnauthorizedException(
+        'Email and password combination not valid',
+      );
+    }
+    return this.generateJwtToken(user.roles.map(role => role.roleId));
   }
 
   async refresh(
@@ -102,12 +102,11 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
     accessToken: string = null,
   ): Promise<AuthResponseInterface> {
     const payload = this.jwtService.verify(refreshToken);
-    const user = await this.userService.findById(payload.id);
     this.tokenBlacklist.add(refreshToken);
     if (accessToken) {
       this.tokenBlacklist.add(accessToken);
     }
-    return this.generateJwtToken(user);
+    return this.generateJwtToken(payload.roles);
   }
 
   logout(accessToken: string, refreshToken: string): boolean {

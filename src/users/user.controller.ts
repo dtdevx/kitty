@@ -5,7 +5,7 @@ import {
   UserResponseInterface,
   UsersResponseInterface,
 } from '@app/users/types/user-response.interface';
-import { UserType } from '@app/users/types/user.type';
+import { UserWithRoles } from '@app/users/types/user.type';
 import { UserService } from '@app/users/user.service';
 import {
   Body,
@@ -30,13 +30,13 @@ export class UserController {
 
   @Get()
   async findAll(): Promise<UsersResponseInterface> {
-    const users = (await this.userService.findAll()) as UserType[];
+    const users = (await this.userService.findAll()) as UserWithRoles[];
     return this.userService.buildUsersResponse(users);
   }
 
   @Get(':id')
   async findOne(@Param('id') id: number): Promise<UserResponseInterface> {
-    const user = (await this.userService.findById(+id)) as UserType;
+    const user = (await this.userService.findById(+id)) as UserWithRoles;
     return this.userService.buildUserResponse(user);
   }
 

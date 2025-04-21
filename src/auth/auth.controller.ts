@@ -7,14 +7,18 @@ import { clearAuthCookies, setAuthCookies } from '@app/utils/cookie.util';
 import {
   Body,
   Controller,
+  Get,
   Post,
   Req,
   Res,
   UnauthorizedException,
+  UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { CurrentUser } from './decorators/current-user.decorator';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -30,6 +34,12 @@ export class AuthController {
     const tokens = await this.authService.login(loginUserDto);
     setAuthCookies(res, tokens);
     return tokens;
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  async me(@CurrentUser() user: AuthResponseInterface) {
+    return user;
   }
 
   @Post('refresh')
